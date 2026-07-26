@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-from database import get_all_keywords, is_alert_sent, mark_alert_sent, init_db
+import database
 import scraper
 
 class AlertBot(commands.Bot):
@@ -9,7 +9,7 @@ class AlertBot(commands.Bot):
         super().__init__(command_prefix="!", intents=discord.Intents.default())
 
     async def setup_hook(self):
-        init_db()
+        database.init_db()
         await self.tree.sync()
         
         # 봇 실행 시 백그라운드 주기적 알림 루프를 실행
@@ -21,13 +21,13 @@ class AlertBot(commands.Bot):
     async def check_posts_loop(self):
         try:
             posts = await scraper.fetch_recent_posts()
-            keywords_data = get_all_keywords()
+            keywords_data = database.get_all_keywords()
             
             if not posts or not keywords_data:
                 return
 
             for post in posts:
-                if is_alert_sent(post['id']):
+                if database.is_alert_sent(post['id']):
                     continue
                     
                 title_lower = post['title'].lower()
@@ -48,7 +48,7 @@ class AlertBot(commands.Bot):
                                 notified_channels.add(channel_id)
                 
                 # 중복 마킹은 루프 내 정상 처리된 후 안전하게 반영
-                mark_alert_sent(post['id'])
+                database.mark_alert_sent(post['id'])
                 
         except Exception as e:
             print(f"Error checking posts: {e}")
