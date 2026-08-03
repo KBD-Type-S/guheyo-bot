@@ -22,7 +22,7 @@ async def fetch_recent_posts():
       }
     }
     """
-    variables = {"skip": 0, "take": 20, "orderBy": {"bumpedAt": "desc"}}
+    variables = {"skip": 0, "take": 12, "orderBy": {"bumpedAt": "desc"}}
     posts = []
     
     try:
@@ -30,7 +30,13 @@ async def fetch_recent_posts():
             async with session.post(url, json={"query": query, "variables": variables}) as response:
                 if response.status == 200:
                     data = await response.json()
-                    edges = data.get("data", {}).get("findOfferPreviews", {}).get("edges", [])
+                    
+                    graphql_data = data.get("data")
+                    if not graphql_data:
+                        print(f"Error: {data.get('errors')}")
+                        return posts
+                    
+                    edges = graphql_data.get("findOfferPreviews", {}).get("edges", [])
                     for edge in edges:
                         post = edge.get("node", {}).get("post")
                         if post:
