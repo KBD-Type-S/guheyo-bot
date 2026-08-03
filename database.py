@@ -18,7 +18,8 @@ def init_db():
             ''')
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sent_alerts (
-                    post_id TEXT PRIMARY KEY
+                    post_id TEXT PRIMARY KEY,
+                    timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
                 )
             ''')
 
@@ -72,4 +73,4 @@ def mark_alert_sent(post_id: str):
     with closing(sqlite3.connect(DB_PATH)) as conn:
         with conn:
             cursor = conn.cursor()
-            cursor.execute('INSERT OR IGNORE INTO sent_alerts (post_id) VALUES (?)', (post_id,))
+            cursor.execute('INSERT OR IGNORE INTO sent_alerts (post_id, timestamp) VALUES (?, datetime("now", "localtime"))', (post_id,))
