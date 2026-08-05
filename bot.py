@@ -53,7 +53,7 @@ class AlertBot(commands.Bot):
                                 notified_channels.add(channel_id)
                 
                 # 중복 마킹은 루프 내 정상 처리된 후 안전하게 반영
-                database.mark_alert_sent(post['id'])
+                database.mark_alert_sent(post['id'], post['url'])
                 
         except Exception as e:
             print(f"Error checking posts: {e}")

@@ -19,9 +19,15 @@ def init_db():
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sent_alerts (
                     post_id TEXT PRIMARY KEY,
+                    url TEXT,
                     timestamp DATETIME DEFAULT (datetime('now', 'localtime'))
                 )
             ''')
+            # 기존 DB에 url 컬럼이 없는 경우 마이그레이션
+            try:
+                cursor.execute('ALTER TABLE sent_alerts ADD COLUMN url TEXT')
+            except sqlite3.OperationalError:
+                pass  # 이미 컬럼이 존재함
 
 def add_keyword(user_id: int, channel_id: int, keyword: str) -> bool:
     with closing(sqlite3.connect(DB_PATH)) as conn:
@@ -69,8 +75,8 @@ def is_alert_sent(post_id: str) -> bool:
         cursor.execute('SELECT 1 FROM sent_alerts WHERE post_id = ?', (post_id,))
         return cursor.fetchone() is not None
 
-def mark_alert_sent(post_id: str):
+def mark_alert_sent(post_id: str, url: str = ''):
     with closing(sqlite3.connect(DB_PATH)) as conn:
         with conn:
             cursor = conn.cursor()
-            cursor.execute('INSERT OR IGNORE INTO sent_alerts (post_id, timestamp) VALUES (?, datetime("now", "localtime"))', (post_id,))
+            cursor.execute('INSERT OR IGNORE INTO sent_alerts (post_id, url, timestamp) VALUES (?, ?, datetime("now", "localtime"))', (post_id, url))
