@@ -30,11 +30,16 @@ class AlertBot(commands.Bot):
                 if database.is_alert_sent(post['id']):
                     continue
                     
+                # 신규 게시물인 경우에만 내용을 가져옵니다 (서버 부하 방지)
+                content = await scraper.fetch_post_content(post['url'])
+                    
                 title_lower = post['title'].lower()
+                content_lower = content.lower()
                 notified_channels = set()
                 
                 for user_id, channel_id, keyword in keywords_data:
-                    if keyword.lower() in title_lower:
+                    kw_lower = keyword.lower()
+                    if kw_lower in title_lower or kw_lower in content_lower:
                         if channel_id not in notified_channels:
                             channel = self.get_channel(channel_id)
                             if channel is None:
