@@ -35,22 +35,34 @@ class AlertBot(commands.Bot):
                     
                 title_lower = post['title'].lower()
                 content_lower = content.lower()
-                notified_channels = set()
+                # channel_id별로 전송할 알림 데이터를 집계 (채널별 일괄 전송 및 다수 태그 지원)
+                alerts_to_send = {}
                 
                 for user_id, channel_id, keyword in keywords_data:
                     kw_lower = keyword.lower()
                     if kw_lower in title_lower or kw_lower in content_lower:
-                        if channel_id not in notified_channels:
-                            channel = self.get_channel(channel_id)
-                            if channel is None:
-                                try:
-                                    channel = await self.fetch_channel(channel_id)
-                                except Exception:
-                                    continue
-                            
-                            if channel:
-                                await channel.send(f"<@{user_id}> 🔔 새 게시글 알림 (`{keyword}`):\n**{post['title']}**\n{post['url']}")
-                                notified_channels.add(channel_id)
+                        if channel_id not in alerts_to_send:
+                            alerts_to_send[channel_id] = {}
+                        if user_id not in alerts_to_send[channel_id]:
+                            alerts_to_send[channel_id][user_id] = set()
+                        alerts_to_send[channel_id][user_id].add(keyword)
+                
+                for channel_id, users_data in alerts_to_send.items():
+                    channel = self.get_channel(channel_id)
+                    if channel is None:
+                        try:
+                            channel = await self.fetch_channel(channel_id)
+                        except Exception:
+                            continue
+                    
+                    if channel:
+                        tags = " ".join([f"<@{uid}>" for uid in users_data.keys()])
+                        all_kws = set()
+                        for kws in users_data.values():
+                            all_kws.update(kws)
+                        kws_str = ", ".join(all_kws)
+                        
+                        await channel.send(f"{tags} 🔔 새 게시글 알림 (`{kws_str}`):\n**{post['title']}**\n{post['url']}")
                 
                 # 중복 마킹은 루프 내 정상 처리된 후 안전하게 반영
                 database.mark_alert_sent(post['id'], post['url'])
